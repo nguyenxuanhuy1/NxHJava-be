@@ -1,5 +1,6 @@
 package com.nxh.redis.exception;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +46,41 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // 3. Lỗi không xác định
+    // 3. IllegalArgumentException (wheel not found, preset invalid...)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        java.time.LocalDateTime.now(),
+                        400,
+                        "BAD_REQUEST",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        java.util.UUID.randomUUID().toString()
+                ));
+    }
+
+    // 4. IllegalStateException (wheel no items...)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorResponse(
+                        java.time.LocalDateTime.now(),
+                        422,
+                        "UNPROCESSABLE_ENTITY",
+                        ex.getMessage(),
+                        request.getRequestURI(),
+                        java.util.UUID.randomUUID().toString()
+                ));
+    }
+
+    // 5. Lỗi không xác định
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnknown(
             Exception ex,

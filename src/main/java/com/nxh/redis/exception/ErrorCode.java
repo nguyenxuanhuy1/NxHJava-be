@@ -12,7 +12,12 @@ public enum ErrorCode {
 
     // Auth
     UNAUTHORIZED(401, "Unauthorized"),
-    FORBIDDEN(403, "Access denied");
+    FORBIDDEN(403, "Access denied"),
+
+    // Wheel
+    WHEEL_NOT_FOUND(404, "Wheel not found"),
+    WHEEL_NO_ITEMS(422, "Wheel has no items"),
+    WHEEL_PRESET_INVALID(400, "Preset result is not in wheel items");
 
     private final int status;
     private final String message;
