@@ -13,5 +13,7 @@ public class SpinHistoryResponse {
     private Long wheelId;
     private String result;
     private boolean wasPreset;
+    @com.fasterxml.jackson.annotation.JsonProperty("spinTime")
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime spunAt;
 }

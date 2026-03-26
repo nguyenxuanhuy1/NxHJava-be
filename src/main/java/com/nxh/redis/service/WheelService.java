@@ -110,6 +110,10 @@ public class WheelService {
             );
         }
 
+        // Lưu vào DB MySQL/Postgres
+        wheel.setPresetResult(request.getResult());
+        wheelRepository.save(wheel);
+
         redisTemplate.opsForValue().set(REDIS_PRESET_KEY + wheelId, request.getResult());
         log.info("[Admin] Set preset for wheel id={} -> result='{}'", wheelId, request.getResult());
     }
@@ -118,7 +122,12 @@ public class WheelService {
      * [Admin] Xoá preset - lượt sau sẽ quay random
      */
     public void clearPreset(Long wheelId) {
-        findWheelById(wheelId);
+        Wheel wheel = findWheelById(wheelId);
+        
+        // Xoá trong DB
+        wheel.setPresetResult(null);
+        wheelRepository.save(wheel);
+
         redisTemplate.delete(REDIS_PRESET_KEY + wheelId);
         log.info("[Admin] Cleared preset for wheel id={}", wheelId);
     }
@@ -149,6 +158,11 @@ public class WheelService {
             // Có preset -> dùng preset và xóa đi (chỉ dùng 1 lần)
             result = presetValue;
             wasPreset = true;
+
+            // Xoá trong DB ngay lập tức
+            wheel.setPresetResult(null);
+            wheelRepository.save(wheel);
+
             redisTemplate.delete(presetKey);
             log.info("Wheel id={} spin -> PRESET result='{}'", wheelId, result);
         } else {

@@ -12,5 +12,6 @@ public class SpinResponse {
     private Long wheelId;
     private String result;        // Kết quả lượt quay
     private boolean wasPreset;    // true = do admin đặt trước
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime spunAt;
 }
