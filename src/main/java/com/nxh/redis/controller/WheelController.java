@@ -5,6 +5,7 @@ import com.nxh.redis.service.WheelService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -79,6 +80,7 @@ public class WheelController {
      *
      * => Lượt quay tiếp theo của vòng quay này CHẮC CHẮN ra "huy"
      */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{wheelId}/preset")
     public ResponseEntity<String> setPreset(
             @PathVariable Long wheelId,
@@ -92,6 +94,7 @@ public class WheelController {
      * [Admin] Xoá preset - lượt sau sẽ quay ngẫu nhiên
      * DELETE /api/wheels/{wheelId}/preset
      */
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{wheelId}/preset")
     public ResponseEntity<String> clearPreset(@PathVariable Long wheelId) {
         wheelService.clearPreset(wheelId);

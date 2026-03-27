@@ -1,111 +1,67 @@
 package com.nxh.redis.exception;
-import jakarta.servlet.http.HttpServletRequest;
+
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    // 1. Custom exception
-    @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(
-            AppException ex,
-            HttpServletRequest request
-    ) {
-        ErrorCode code = ex.getErrorCode();
 
-        return ResponseEntity.status(code.getStatus())
-                .body(buildResponse(code, request));
-    }
-
-    // 2. Validation lỗi
+    // Validation thất bại (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(
-            MethodArgumentNotValidException ex,
-            HttpServletRequest request
-    ) {
-        String message = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
-                .findFirst()
-                .orElse("Invalid input");
-
-        return ResponseEntity.badRequest()
-                .body(new ErrorResponse(
-                        LocalDateTime.now(),
-                        400,
-                        "VALIDATION_ERROR",
-                        message,
-                        request.getRequestURI(),
-                        UUID.randomUUID().toString()
-                ));
+                .collect(Collectors.joining(", "));
+        return error(HttpStatus.BAD_REQUEST, message);
     }
 
-    // 3. IllegalArgumentException (wheel not found, preset invalid...)
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(
-            IllegalArgumentException ex,
-            HttpServletRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        java.time.LocalDateTime.now(),
-                        400,
-                        "BAD_REQUEST",
-                        ex.getMessage(),
-                        request.getRequestURI(),
-                        java.util.UUID.randomUUID().toString()
-                ));
+    // Sai username/password
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
+        return error(HttpStatus.UNAUTHORIZED, "Sai username hoặc password");
     }
 
-    // 4. IllegalStateException (wheel no items...)
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(
-            IllegalStateException ex,
-            HttpServletRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(new ErrorResponse(
-                        java.time.LocalDateTime.now(),
-                        422,
-                        "UNPROCESSABLE_ENTITY",
-                        ex.getMessage(),
-                        request.getRequestURI(),
-                        java.util.UUID.randomUUID().toString()
-                ));
+    @ExceptionHandler({DisabledException.class, LockedException.class})
+    public ResponseEntity<Map<String, Object>> handleDisabled(Exception ex) {
+        return error(HttpStatus.UNAUTHORIZED, "Tài khoản bị khoá hoặc chưa kích hoạt");
     }
 
-    // 5. Lỗi không xác định
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleUnknown(
-            Exception ex,
-            HttpServletRequest request
-    ) {
-        return ResponseEntity.status(500)
-                .body(new ErrorResponse(
-                        LocalDateTime.now(),
-                        500,
-                        ErrorCode.INTERNAL_ERROR.name(),
-                        ex.getMessage(),
-                        request.getRequestURI(),
-                        UUID.randomUUID().toString()
-                ));
+    // Token hết hạn
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<Map<String, Object>> handleExpiredJwt(ExpiredJwtException ex) {
+        return error(HttpStatus.UNAUTHORIZED, "Token đã hết hạn, vui lòng đăng nhập lại");
     }
 
-    // helper
-    private ErrorResponse buildResponse(ErrorCode code, HttpServletRequest request) {
-        return new ErrorResponse(
-                LocalDateTime.now(),
-                code.getStatus(),
-                code.name(),
-                code.getMessage(),
-                request.getRequestURI(),
-                UUID.randomUUID().toString()
-        );
+    // JWT không hợp lệ
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<Map<String, Object>> handleJwtException(JwtException ex) {
+        return error(HttpStatus.UNAUTHORIZED, "Token không hợp lệ");
+    }
+
+    // Lỗi chung
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", status.value(),
+                "error", status.getReasonPhrase(),
+                "message", message != null ? message : "Lỗi không xác định"
+        ));
     }
 }
