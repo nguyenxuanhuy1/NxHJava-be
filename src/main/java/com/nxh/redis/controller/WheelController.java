@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("/api/wheels")
 @RequiredArgsConstructor
@@ -40,12 +41,17 @@ public class WheelController {
     }
 
     /**
-     * Lấy tất cả vòng quay
+     * Lấy danh sách vòng quay (không có items, dùng GET /api/wheels/{wheelId} để xem đầy đủ).
+     * - Không truyền id: trả 10 vòng quay mới nhất
+     * - Truyền id: trả únh vòng quay có id đó (tìm kiếm)
      * GET /api/wheels
+     * GET /api/wheels?id=5
      */
     @GetMapping
-    public ResponseEntity<List<WheelResponse>> getAllWheels() {
-        return ResponseEntity.ok(wheelService.getAllWheels());
+    public ResponseEntity<List<WheelSummaryResponse>> getAllWheels(
+            @RequestParam(required = false) Long id
+    ) {
+        return ResponseEntity.ok(wheelService.getAllWheels(id));
     }
 
     /**

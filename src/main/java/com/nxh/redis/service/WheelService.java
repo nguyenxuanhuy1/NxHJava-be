@@ -73,11 +73,19 @@ public class WheelService {
     }
 
     /**
-     * Lấy tất cả vòng quay
+     * Lấy danh sách vòng quay (không trả items để tránh nặng payload).
+     * - id == null : trả 10 vòng quay mới nhất
+     * - id != null : tìm kiếm đúng wheel có id đó, trả về list 1 phần tử
+     *                (trả List để response format đồng nhất với trường hợp không có id)
+     * Frontend muốn xem items đầy đủ → gọi GET /api/wheels/{wheelId}
      */
-    public List<WheelResponse> getAllWheels() {
-        return wheelRepository.findAll().stream()
-                .map(this::toWheelResponse)
+    public List<WheelSummaryResponse> getAllWheels(Long id) {
+        if (id != null) {
+            Wheel wheel = findWheelById(id);
+            return List.of(toWheelSummaryResponse(wheel));
+        }
+        return wheelRepository.findTop10ByOrderByCreatedAtDesc().stream()
+                .map(this::toWheelSummaryResponse)
                 .toList();
     }
 
@@ -219,6 +227,21 @@ public class WheelService {
                 .id(wheel.getId())
                 .name(wheel.getName())
                 .items(fromJson(wheel.getItemsJson()))
+                .presetResult(preset)
+                .createdAt(wheel.getCreatedAt())
+                .updatedAt(wheel.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Map không kèm items - dùng cho list API (GET /api/wheels)
+     * Tránh trả mảng items lên đến 1000 phần tử trong danh sách
+     */
+    private WheelSummaryResponse toWheelSummaryResponse(Wheel wheel) {
+        String preset = redisTemplate.opsForValue().get(REDIS_PRESET_KEY + wheel.getId());
+        return WheelSummaryResponse.builder()
+                .id(wheel.getId())
+                .name(wheel.getName())
                 .presetResult(preset)
                 .createdAt(wheel.getCreatedAt())
                 .updatedAt(wheel.getUpdatedAt())
