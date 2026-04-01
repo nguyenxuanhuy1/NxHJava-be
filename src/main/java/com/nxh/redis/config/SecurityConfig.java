@@ -56,8 +56,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public UserDetailsService userDetailsService() {
+    // Không expose @Bean để tránh conflict với AuthenticationProvider
+    private UserDetailsService userDetailsService() {
         return username -> userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User không tồn tại: " + username));
     }
